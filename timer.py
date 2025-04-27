@@ -1,16 +1,30 @@
 import time
 from types import TracebackType
-from typing import Self, Any, Type, Optional, Callable, Generator, Hashable, Awaitable, AsyncGenerator
+from typing import (Self, Any, Type, Optional, Callable, Generator, 
+                    Hashable, Awaitable, AsyncGenerator, ParamSpec, TypeVar)
 from collections import defaultdict
 from functools import wraps
 from enum import StrEnum
 from contextlib import contextmanager, asynccontextmanager
 import logging
+from itertools import repeat
 
 __author__ = "Peter Vestereng Larsen"
 __version__ = "0.1.0"
 __license__ = "MIT" #depending on git
 __email__ = "p.vesterenglarsen@gmail.com"
+
+P = ParamSpec(name='P')
+P_async = ParamSpec(name='P_async')
+
+R = TypeVar(name='R')
+R_async = TypeVar(name='R_async')
+
+Q = ParamSpec(name='Q')
+S = TypeVar(name='S')
+
+T = ParamSpec(name='T')
+V = TypeVar(name='V')
 
 
 class Status(StrEnum):
@@ -223,20 +237,20 @@ class Timer:
             raise KeyError(f"Key '{str_key}' not found in timer registry.")
         return self._registry[str_key].status
     
-    def timed(self, func: Callable[..., Any]) -> Callable[..., Any]:
+    def timed(self, func: Callable[P, R]) -> Callable[P, R]:
         @wraps(func)
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             count = self._call_counters[func.__name__]
             key: str = f'{func.__name__} ({count})'
             self._call_counters[func.__name__] += 1
             with self[key]:
-                result: Any = func(*args, **kwargs)
+                result: R = func(*args, **kwargs)
             return result
         return wrapper
     
-    def timed_async(self, func: Callable[..., Awaitable[Any]]) -> Callable[..., Awaitable[Any]]:
+    def timed_async(self, func: Callable[P_async, Awaitable[R_async]]) -> Callable[P_async, Awaitable[R_async]]:
         @wraps(func)
-        async def wrapper(*args: Any, **kwargs: Any) -> Any:
+        async def wrapper(*args: P_async.args, **kwargs: P_async.kwargs) -> R_async:
             count = self._call_counters[func.__name__]
             async_key: str = f'{func.__name__} ({count})'
             self._call_counters[func.__name__] += 1
@@ -266,11 +280,25 @@ class Timer:
             reverse=reverse
         )
         
-    def timeit(self, func: Callable[..., Any], name: Optional[Hashable] = None, 
-               verbose: bool = False, log_func: Callable[[str], Any] = print, **kwargs: Any) -> TimerContext:
-        with self.anonymous(name=name, verbose=verbose, log_func=log_func) as ctx:
-            func(**kwargs)
+    def timeit(self, func: Callable[Q, S],
+               *args: Q.args, **kwargs: Q.kwargs) -> TimerContext:
+        count = self._call_counters[f"{func.__name__} timeit"]
+        key: str = f"{func.__name__} timeit ({count})"
+        self._call_counters[f"{func.__name__} timeit"] += 1
+        with self[key] as ctx:
+            func(*args, **kwargs)
         return ctx
+    
+    def benchmark(self, func: Callable[T, V], num_iter: int,
+                  *args: T.args, **kwargs: T.kwargs) -> list[TimerContext]:
+        "[DEV NOTE] Benchmark runs anonymously."
+        str_key: str = f"{func.__name__} benchmark"
+        results: list[TimerContext] = []
+        for _ in repeat(None, num_iter):
+            with self.anonymous(name = str_key) as ctx:
+                func(*args, **kwargs)
+                results.append(ctx)
+        return results
         
     def __getitem__(self, key: Hashable) -> TimerContext:
         str_key: str = str(key)
@@ -356,12 +384,12 @@ if __name__ == '__main__':
     
     
     @timer.timed
-    def foo(x: int) -> int:
+    def foo(x: float) -> float:
         time.sleep(x)
         return x
     
     @timer.timed
-    def bar(x: int) -> int:
+    def bar(x: float) -> float:
         time.sleep(x)
         return x
     
@@ -376,7 +404,7 @@ if __name__ == '__main__':
     print(timer.times)
     
     @timer.timed
-    def baz(x: int) -> int:
+    def baz(x: float) -> float:
         time.sleep(x)
         return x
     baz(0.1)
@@ -442,12 +470,19 @@ if __name__ == '__main__':
     print(sw)
     
     @timer.timed
-    def foo_error(x: int) -> int:
+    def foo_error(x: float) -> float:
         time.sleep(x / 2)
         raise ValueError("This is an error")
         time.sleep(x / 2)
     try:
         foo_error(0.1)
     except Exception as e:
+        print(f"Exception caught: {e}")
         pass
     print(timer.get('foo_error'))
+    
+    print(timer.timeit(foo, 0.1))
+    print(timer.timeit(foo, x=0.1))
+    
+    bench_results = timer.benchmark(foo, 10, 0.1)
+    print(bench_results)
