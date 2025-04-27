@@ -14,6 +14,7 @@ __email__ = "p.vesterenglarsen@gmail.com"
 
 
 class Status(StrEnum):
+    """Enum object indicating the status of a timer."""
     PENDING = 'pending'
     RUNNING = 'running'
     STOPPED = 'stopped'
@@ -21,9 +22,18 @@ class Status(StrEnum):
     FAILED = 'failed'
     
 class BaseTimer:
+    """Base class for timers. This class is not intended to be used directly."""
     _precision: Optional[int]
     
     def _round(self, value: float) -> float:
+        """Round the value to the specified precision. If precision is None, return the value as is.
+
+        Args:
+            value (float): the value to round
+
+        Returns:
+            float: the rounded value
+        """
         if self._precision is None:
             return value
         return round(value, self._precision)
@@ -172,7 +182,7 @@ class TimerContext(BaseTimer):
         if self._verbose:
             if self._has_laps:
                 self._log_func(f"Lap {len(self._laps)} time: {self._laps[-1]}s")
-            self._log_func(f"Timer '{self._name}' finished with status: {self._status}")
+            self._log_func(f"Timer '{self._name}' finished with status: {self._status}" + f", exception: {exc_value}" if exc_value else "")
             if self._precision is not None:
                 self._log_func(f"Elapsed time: {self.elapsed_time:.{self._precision}f}s")
             else:
@@ -215,7 +225,7 @@ class Timer:
     
     def timed(self, func: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(func)
-        def wrapper(*args, **kwargs) -> Any:
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             count = self._call_counters[func.__name__]
             key: str = f'{func.__name__} ({count})'
             self._call_counters[func.__name__] += 1
@@ -226,7 +236,7 @@ class Timer:
     
     def timed_async(self, func: Callable[..., Awaitable[Any]]) -> Callable[..., Awaitable[Any]]:
         @wraps(func)
-        async def wrapper(*args, **kwargs) -> Any:
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
             count = self._call_counters[func.__name__]
             async_key: str = f'{func.__name__} ({count})'
             self._call_counters[func.__name__] += 1
@@ -244,9 +254,9 @@ class Timer:
         return result
     
     @contextmanager
-    def anonymous(self, name: Optional[Hashable] = None, verbose: bool = False) -> Generator[TimerContext, None, None]:
+    def anonymous(self, name: Optional[Hashable] = None, verbose: bool = False, log_func: Callable[[str], Any] = print) -> Generator[TimerContext, None, None]:
         str_name: str = str(name)
-        with TimerContext(self.precision, name=str_name, verbose=verbose) as ctx:
+        with TimerContext(self.precision, name=str_name, verbose=verbose, log_func=log_func) as ctx:
             yield ctx
             
     def sorted(self, reverse: bool = False) -> list[tuple[str, TimerContext]]:
@@ -255,7 +265,13 @@ class Timer:
             key=lambda item: item[1].elapsed_time,
             reverse=reverse
         )
-
+        
+    def timeit(self, func: Callable[..., Any], name: Optional[Hashable] = None, 
+               verbose: bool = False, log_func: Callable[[str], Any] = print, **kwargs: Any) -> TimerContext:
+        with self.anonymous(name=name, verbose=verbose, log_func=log_func) as ctx:
+            func(**kwargs)
+        return ctx
+        
     def __getitem__(self, key: Hashable) -> TimerContext:
         str_key: str = str(key)
         if str_key not in self._registry:
@@ -273,15 +289,11 @@ class Timer:
                 self._times[key] = context.elapsed_time
         self._updated = True
         self._keys_to_update.clear()
-        
-    @contextmanager
-    def _sync_context(self, key: str) -> Generator[TimerContext, None, None]:
-        with self[key] as ctx:
-            yield ctx
 
     @asynccontextmanager
     async def _async_context(self, key: str) -> AsyncGenerator[TimerContext, None]:
-        ctx = self[key]
+        str_key: str = str(key)
+        ctx = self[str_key]
         ctx.__enter__()
         try:
             yield ctx
@@ -355,11 +367,11 @@ if __name__ == '__main__':
     
     
     foo(0.1)
-    bar(0.2)
+    bar(0.15)
+    foo(0.2)
+    bar(0.25)
     foo(0.3)
-    bar(0.4)
-    foo(0.5)
-    bar(0.6)
+    bar(0.35)
     print(timer.times)
     print(timer.times)
     
@@ -428,3 +440,14 @@ if __name__ == '__main__':
     print(sw)
     print(sw.stop())
     print(sw)
+    
+    @timer.timed
+    def foo_error(x: int) -> int:
+        time.sleep(x / 2)
+        raise ValueError("This is an error")
+        time.sleep(x / 2)
+    try:
+        foo_error(0.1)
+    except Exception as e:
+        pass
+    print(timer.get('foo_error'))
