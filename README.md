@@ -31,8 +31,6 @@ Or with pip:
 pip install -e .
 ```
 
-**Note:** This project is designed to work on both WSL/Linux and Windows.
-
 ## Quick Start
 
 ### Basic Timing with Context Manager
@@ -231,7 +229,7 @@ Timer(precision: Optional[int] = None, verbose: bool = False, log_func: Callable
 - `timer['key']` - Create/access timer context (creates new context each time)
 - `timed(func)` - Decorator for synchronous functions
 - `timed_async(func)` - Decorator for async functions
-- `get(partial_key: str)` - Get all contexts matching partial key
+- `get(key: str)` - Get all contexts matching a key
 - `status(key: str)` - Get list of statuses for a key
 - `sorted(reverse: bool = False)` - Get timers sorted by elapsed time
 - `timeit(func, *args, **kwargs)` - Time a single function call
@@ -288,15 +286,6 @@ Timer lifecycle states:
 Run tests with unittest:
 ```bash
 python -m unittest tests._basic_test -v
-```
-
-Or using the virtual environment python:
-```bash
-# WSL/Linux
-.venv/bin/python -m unittest tests._basic_test -v
-
-# Windows
-.venv\Scripts\python -m unittest tests._basic_test -v
 ```
 
 ## Development
