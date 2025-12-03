@@ -2,7 +2,7 @@ import time
 import unittest
 import asyncio
 
-from src.timekid.timer import TimerContext, Timer, Status, StopWatch
+from timekid.timer import TimerContext, Timer, Status, StopWatch
 
 class TestTimerContext(unittest.TestCase):
     def test_elapsed_time(self):
