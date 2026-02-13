@@ -1,5 +1,5 @@
 [project]
-name = "timer"
+name = "timekid"
 version = "0.1.0"
 description = "timekid - High-precision timing and profiling library for Python."
 readme = "README.md"
