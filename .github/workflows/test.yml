@@ -26,13 +26,14 @@ jobs:
         with:
           version: "latest"
 
-      - name: Install dependencies (uv)
+      - name: Create venv + install project (uv)
         run: |
-          uv sync --frozen
+          uv venv --python "$(which python)"
+          uv pip install -e . --python .venv/bin/python
 
       - name: Run tests
         run: |
-          uv run python -m unittest discover -s tests -p "*_test.py" -v
+          .venv/bin/python -m unittest discover -s tests -p "*_test.py" -v
 
       - name: Test summary
         if: always()
