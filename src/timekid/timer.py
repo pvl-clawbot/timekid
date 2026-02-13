@@ -12,6 +12,7 @@ __version__ = "0.1.0"
 __license__ = "MIT"
 __email__ = "p.vesterenglarsen@gmail.com"
 
+__all__ = ['Timer', 'StopWatch', 'TimerContext', 'Status', 'BaseTimer']
 logger = logging.getLogger('timekid')
 
 P = ParamSpec(name='P')
