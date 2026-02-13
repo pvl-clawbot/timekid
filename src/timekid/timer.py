@@ -390,11 +390,12 @@ class Timer:
             func(*args, **kwargs)
         return ctx
     
-    def benchmark(self, func: Callable[P, R], num_iter: int,
+    def benchmark(self, func: Callable[P, R], num_iter: int, warmup: int = 1,
                   *args: P.args, **kwargs: P.kwargs) -> list[TimerContext]:
         # Benchmark runs anonymously and doesn't persist in registry
-        # Single warmup run to handle JIT compilation or lazy initialization
-        func(*args, **kwargs)
+        # Warmup runs to handle JIT compilation or lazy initialization
+        for _ in range(warmup):
+            func(*args, **kwargs)
 
         str_key: str = f"{func.__name__} benchmark"
         results: list[TimerContext] = []
