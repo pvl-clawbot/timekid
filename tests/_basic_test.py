@@ -177,6 +177,24 @@ class TestStopWatch(unittest.TestCase):
         self.assertIn("elapsed_time=", repr_str)
         self.assertIn("status=stopped", repr_str)
 
+    def test_context_manager_success(self):
+        """Test StopWatch context manager successful execution."""
+        with StopWatch(precision=2) as sw:
+            time.sleep(0.1)
+
+        self.assertEqual(sw.status, Status.STOPPED)
+        self.assertAlmostEqual(sw.elapsed_time, 0.1, places=1)
+
+    def test_context_manager_exception_sets_failed(self):
+        """Test StopWatch context manager marks FAILED on exception."""
+        sw = None
+        with self.assertRaises(ValueError):
+            with StopWatch(precision=2) as sw:
+                raise ValueError("boom")
+
+        assert sw is not None
+        self.assertEqual(sw.status, Status.FAILED)
+
 
 class TestTimer(unittest.TestCase):
     def test_registry(self):
