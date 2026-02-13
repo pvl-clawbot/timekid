@@ -11,6 +11,8 @@ __version__ = "0.1.0"
 __license__ = "MIT"
 __email__ = "p.vesterenglarsen@gmail.com"
 
+__all__ = ['Timer', 'StopWatch', 'TimerContext', 'Status', 'BaseTimer']
+
 P = ParamSpec(name='P')
 P_async = ParamSpec(name='P_async')
 
