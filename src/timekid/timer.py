@@ -97,7 +97,19 @@ class StopWatch(BaseTimer):
         self._end_time = None
         self._elapsed_time = None
         self._status = Status.PENDING
-        
+
+    def __enter__(self) -> Self:
+        self.start()
+        return self
+
+    def __exit__(self,
+                 exc_type: Optional[Type[BaseException]],
+                 exc_value: Optional[BaseException],
+                 traceback: Optional[TracebackType]) -> None:
+        self.stop()
+        if exc_type is not None:
+            self._status = Status.FAILED
+
     def __repr__(self) -> str:
         parts = [f'status={self.status}']
         if self._start_time is not None:
