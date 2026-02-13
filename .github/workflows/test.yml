@@ -2,9 +2,8 @@ name: Tests
 
 on:
   push:
-    branches: [ main, master, develop ]
   pull_request:
-    branches: [ main, master, develop ]
+  workflow_dispatch:
 
 jobs:
   test:
@@ -15,29 +14,27 @@ jobs:
         python-version: ['3.12', '3.13']
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Install uv
-      uses: astral-sh/setup-uv@v5
-      with:
-        version: "latest"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
 
-    - name: Install dependencies
-      run: |
-        uv venv
-        uv pip install -e .
+      - name: Install dependencies (uv)
+        run: |
+          uv sync --frozen
 
-    - name: Run tests
-      run: |
-        source .venv/bin/activate
-        python -m unittest tests._basic_test -v
+      - name: Run tests
+        run: |
+          uv run python -m unittest discover -s tests -p "*_test.py" -v
 
-    - name: Test summary
-      if: always()
-      run: |
-        echo "Tests completed for Python ${{ matrix.python-version }}"
+      - name: Test summary
+        if: always()
+        run: |
+          echo "Tests completed for Python ${{ matrix.python-version }}"
