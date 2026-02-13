@@ -1,4 +1,5 @@
 import time
+import logging
 from types import TracebackType
 from typing import (Self, Type, Optional, Callable, Generator,
                     Awaitable, AsyncGenerator, ParamSpec, TypeVar)
@@ -12,6 +13,7 @@ __license__ = "MIT"
 __email__ = "p.vesterenglarsen@gmail.com"
 
 __all__ = ['Timer', 'StopWatch', 'TimerContext', 'Status', 'BaseTimer']
+logger = logging.getLogger('timekid')
 
 P = ParamSpec(name='P')
 P_async = ParamSpec(name='P_async')
@@ -126,7 +128,7 @@ class TimerContext(BaseTimer):
     While TimerContext can be used directly, the recommended approach is to access it via the Timer class (e.g., `timer["my_key"]`).
     """
     def __init__(self, precision: Optional[int], name: Optional[str] = None, verbose: bool = False,
-                 log_func: Callable[[str], None] = print) -> None:
+                 log_func: Callable[[str], None] = logger.info) -> None:
         self._name: str = str(name) if name is not None else 'Unnamed'
         self._precision = precision
         self._elapsed_time: Optional[float] = None
@@ -229,7 +231,7 @@ class TimerContext(BaseTimer):
 
 class Timer:
     def __init__(self, precision: Optional[int] = None, verbose: bool = False,
-                 log_func: Callable[[str], None] = print) -> None:
+                 log_func: Callable[[str], None] = logger.info) -> None:
         self._precision = precision
         self._verbose = verbose
         self._log_func = log_func
@@ -346,7 +348,7 @@ class Timer:
         return self._registry.get(key, [])
     
     @contextmanager
-    def anonymous(self, name: Optional[str] = None, verbose: bool = False, log_func: Callable[[str], None] = print) -> Generator[TimerContext, None, None]:
+    def anonymous(self, name: Optional[str] = None, verbose: bool = False, log_func: Callable[[str], None] = logger.info) -> Generator[TimerContext, None, None]:
         with TimerContext(self.precision, name=name, verbose=verbose, log_func=log_func) as ctx:
             yield ctx
             

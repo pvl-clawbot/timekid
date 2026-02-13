@@ -1,6 +1,7 @@
 [project]
 name = "timekid"
 version = "0.1.0"
+license = "MIT"
 description = "timekid - High-precision timing and profiling library for Python."
 readme = "README.md"
 requires-python = ">=3.12"
