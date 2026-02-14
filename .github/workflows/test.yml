@@ -37,8 +37,8 @@ jobs:
 
       - name: Install build tooling
         run: |
-          .venv/bin/python -m pip install --upgrade pip
-          .venv/bin/python -m pip install "maturin>=1.5,<2.0"
+          # Some uv-created venvs may not include pip by default; use uv to install tooling.
+          uv pip install "maturin>=1.5,<2.0" --python .venv/bin/python
 
       - name: Install project (editable)
         run: |
