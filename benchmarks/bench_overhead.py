@@ -3,6 +3,7 @@
 Goals:
 - Compare overhead of Timer context-manager path vs FastTimer.
 - Compare FastTimer pure-python fallback vs native (Rust) backend when available.
+- Compare FastTimer keying with int ids (key_id) vs raw string keys.
 
 These are *overhead* benchmarks: the work inside the timed region is intentionally tiny.
 
@@ -10,15 +11,20 @@ Run locally:
 
   PYTHONPATH=src python benchmarks/bench_overhead.py
 
+JSON output (for CI + tracking):
+
+  PYTHONPATH=src python benchmarks/bench_overhead.py --json
+
 If the native extension is built/installed, the script will detect it.
 """
 
 from __future__ import annotations
 
+import argparse
+import json
 import os
 import sys
 import time
-import statistics as stats
 
 
 def _empty() -> None:
@@ -42,7 +48,12 @@ def _fmt(ns: float) -> str:
     return f"{ns/1_000_000:.2f} ms"
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    p = argparse.ArgumentParser()
+    p.add_argument("--json", action="store_true", help="Emit JSON to stdout")
+    p.add_argument("--n", type=int, default=200_000, help="Iterations for FastTimer/baseline")
+    args = p.parse_args(argv)
+
     # Ensure we can import from src when run from repo root.
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     sys.path.insert(0, os.path.join(repo_root, "src"))
@@ -52,10 +63,11 @@ def main() -> int:
 
     has_native = fast.FastTimer.__module__ == "timekid._fast"
 
-    N = 2_000_00  # 200k; keeps CI runtime reasonable
+    n_fast = int(args.n)
+    n_timer = max(10_000, n_fast // 10)  # slower, fewer iterations
 
     # Baseline: empty Python function call overhead.
-    baseline = _measure(_empty, N)
+    baseline = _measure(_empty, n_fast)
 
     # Timer context manager overhead.
     timer = Timer()
@@ -64,33 +76,64 @@ def main() -> int:
         with timer["x"]:
             pass
 
-    timer_ns = _measure(timer_ctx, max(10_000, N // 10))  # slower, fewer iterations
+    timer_ns = _measure(timer_ctx, n_timer)
 
-    # FastTimer start/stop overhead.
-    ft = fast.FastTimer()
-    key = ft.key_id("x")
+    # FastTimer: int key id
+    ft_int = fast.FastTimer()
+    key_int = ft_int.key_id("x")
 
-    def fast_start_stop():
-        tok = ft.start(key)
-        ft.stop(tok)
+    def fast_int():
+        tok = ft_int.start(key_int)
+        ft_int.stop(tok)
 
-    fast_ns = _measure(fast_start_stop, N)
+    fast_int_ns = _measure(fast_int, n_fast)
+
+    # FastTimer: string key
+    ft_str = fast.FastTimer()
+    key_str = "x"
+
+    def fast_str():
+        tok = ft_str.start(key_str)
+        ft_str.stop(tok)
+
+    fast_str_ns = _measure(fast_str, n_fast)
+
+    payload = {
+        "python": sys.version.split()[0],
+        "backend": "native" if has_native else "python",
+        "backend_module": fast.FastTimer.__module__,
+        "iterations": {"fast": n_fast, "timer": n_timer},
+        "ns_per_call": {
+            "baseline_empty_call": baseline,
+            "timer_context_manager": timer_ns,
+            "fasttimer_int_key": fast_int_ns,
+            "fasttimer_str_key": fast_str_ns,
+        },
+        "ratios": {
+            "fasttimer_int_over_baseline": fast_int_ns / baseline,
+            "fasttimer_str_over_baseline": fast_str_ns / baseline,
+            "timerctx_over_baseline": timer_ns / baseline,
+            "timerctx_over_fast_int": timer_ns / fast_int_ns if fast_int_ns else None,
+            "fast_str_over_fast_int": fast_str_ns / fast_int_ns if fast_int_ns else None,
+        },
+    }
+
+    if args.json:
+        print(json.dumps(payload, sort_keys=True))
+        return 0
 
     print("timekid overhead microbench")
-    print(f"Python: {sys.version.split()[0]}")
-    print(f"FastTimer backend: {'native' if has_native else 'python'} ({fast.FastTimer.__module__})")
-    print(f"Iterations: N={N:,} (Timer ctx uses fewer)")
+    print(f"Python: {payload['python']}")
+    print(f"FastTimer backend: {payload['backend']} ({payload['backend_module']})")
+    print(f"Iterations: fast={n_fast:,} timer_ctx={n_timer:,}")
     print()
     print(f"baseline empty call: {_fmt(baseline)}")
     print(f"Timer context manager: {_fmt(timer_ns)}")
-    print(f"FastTimer start/stop: {_fmt(fast_ns)}")
+    print(f"FastTimer start/stop (int key): {_fmt(fast_int_ns)}")
+    print(f"FastTimer start/stop (str key): {_fmt(fast_str_ns)}")
     print()
-
-    # Quick ratios (higher is worse)
-    print(f"FastTimer / baseline: {fast_ns / baseline:.2f}x")
-    print(f"TimerCtx / baseline: {timer_ns / baseline:.2f}x")
-    if fast_ns > 0:
-        print(f"TimerCtx / FastTimer: {timer_ns / fast_ns:.2f}x")
+    print(f"Fast(str)/Fast(int): {payload['ratios']['fast_str_over_fast_int']:.2f}x")
+    print(f"TimerCtx/Fast(int): {payload['ratios']['timerctx_over_fast_int']:.2f}x")
 
     return 0
 

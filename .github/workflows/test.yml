@@ -52,7 +52,10 @@ jobs:
         if: ${{ matrix.python-version == '3.13' }}
         run: |
           # No pass/fail thresholds yet; this is to capture baseline numbers in CI logs.
+          echo "--- human ---"
           PYTHONPATH=src .venv/bin/python benchmarks/bench_overhead.py
+          echo "--- json ---"
+          PYTHONPATH=src .venv/bin/python benchmarks/bench_overhead.py --json
 
       - name: Test summary
         if: always()
