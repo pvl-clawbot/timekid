@@ -1,3 +1,7 @@
+[build-system]
+requires = ["maturin>=1.5,<2.0"]
+build-backend = "maturin"
+
 [project]
 name = "timekid"
 version = "0.1.0"
@@ -6,3 +10,9 @@ description = "timekid - High-precision timing and profiling library for Python.
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []
+
+[tool.maturin]
+# Build a native extension module named timekid._fast
+module-name = "timekid._fast"
+python-source = "src"
+features = ["pyo3/extension-module"]
