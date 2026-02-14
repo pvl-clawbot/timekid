@@ -2,7 +2,7 @@
 
 A high-precision timing and profiling library for Python with support for context managers, decorators, lap timing, and benchmarking.
 
-[![Tests](https://github.com/PeterVL02/timer/actions/workflows/test.yml/badge.svg)](https://github.com/PeterVL02/timer/actions/workflows/test.yml)
+[![Tests](https://github.com/pvl-clawbot/timekid/actions/workflows/test.yml/badge.svg)](https://github.com/pvl-clawbot/timekid/actions/workflows/test.yml)
 
 ## Features
 
@@ -23,12 +23,17 @@ A high-precision timing and profiling library for Python with support for contex
 
 Install with uv (recommended):
 ```bash
-uv pip install -e .
+uv pip install timekid
 ```
 
 Or with pip:
 ```bash
-pip install -e .
+pip install timekid
+```
+
+For local development:
+```bash
+uv pip install -e .
 ```
 
 ## Quick Start

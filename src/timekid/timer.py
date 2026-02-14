@@ -2,10 +2,10 @@ import time
 import logging
 from types import TracebackType
 from typing import (Self, Type, Optional, Callable, Generator,
-                    Awaitable, AsyncGenerator, ParamSpec, TypeVar)
+                    Awaitable, ParamSpec, TypeVar)
 from functools import wraps
 from enum import StrEnum
-from contextlib import contextmanager, asynccontextmanager
+from contextlib import contextmanager
 
 __author__ = "Peter Vestereng Larsen"
 __version__ = "0.1.0"
@@ -438,10 +438,5 @@ class Timer:
 
         return context
 
-    @asynccontextmanager
-    async def _async_context(self, key: str) -> AsyncGenerator[TimerContext, None]:
-        with self[key] as ctx:
-            yield ctx
-        
     def __repr__(self) -> str:
         return f"Timer(precision={self.precision}, times={self.times})"
