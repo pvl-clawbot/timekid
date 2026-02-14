@@ -33,6 +33,27 @@ pip install -e .
 
 ## Quick Start
 
+### Low-overhead timing (FastTimer)
+
+If you need minimal overhead and are doing a large number of measurements, use `FastTimer`.
+It stores raw integer nanoseconds internally and only converts to seconds when you report.
+
+```python
+from timekid.fast import FastTimer
+
+ft = FastTimer()
+key = ft.key_id("hot_loop")  # do string->id once
+
+for _ in range(1000):
+    tok = ft.start(key)
+    # ... hot code ...
+    ft.stop(tok)
+
+print(ft.times_s(precision=6)[key][:5])
+```
+
+(Planned) a future optional Rust backend can implement the same API for even lower overhead.
+
 ### Basic Timing with Context Manager
 
 ```python
