@@ -3,6 +3,15 @@ use pyo3::types::{PyDict, PyString};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
+fn perf_counter_ns(py: Python<'_>) -> PyResult<u64> {
+    // PyO3 0.22 uses bound imports.
+    let time_mod = py.import_bound("time")?;
+    time_mod
+        .getattr("perf_counter_ns")?
+        .call0()?
+        .extract::<u64>()
+}
+
 #[derive(Clone, Debug, Eq)]
 enum Key {
     Int(i64),
@@ -91,17 +100,18 @@ impl FastTimer {
 
     fn start(&self, py: Python<'_>, key: &Bound<'_, PyAny>) -> PyResult<Token> {
         let k = key_from_py(key)?;
-        let t0_ns = py.import("time")?.getattr("perf_counter_ns")?.call0()?.extract::<u64>()?;
+        let t0_ns = perf_counter_ns(py)?;
         Ok(Token { key: k, t0_ns })
     }
 
     fn stop(&mut self, py: Python<'_>, token: &Token) -> PyResult<u64> {
-        let t1_ns = py.import("time")?.getattr("perf_counter_ns")?.call0()?.extract::<u64>()?;
+        let t1_ns = perf_counter_ns(py)?;
         let dt = t1_ns.saturating_sub(token.t0_ns);
         self.times_ns.entry(token.key.clone()).or_default().push(dt);
         Ok(dt)
     }
 
+    #[pyo3(signature = (key=None))]
     fn clear(&mut self, key: Option<&Bound<'_, PyAny>>) -> PyResult<()> {
         match key {
             None => {
@@ -118,7 +128,7 @@ impl FastTimer {
 
     #[getter]
     fn times_ns<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
-        let d = PyDict::new(py);
+        let d = PyDict::new_bound(py);
         for (k, v) in self.times_ns.iter() {
             match k {
                 Key::Int(i) => d.set_item(*i, v.clone())?,
@@ -128,8 +138,9 @@ impl FastTimer {
         Ok(d)
     }
 
+    #[pyo3(signature = (precision=None))]
     fn times_s<'py>(&self, py: Python<'py>, precision: Option<u32>) -> PyResult<Bound<'py, PyDict>> {
-        let d = PyDict::new(py);
+        let d = PyDict::new_bound(py);
         for (k, arr) in self.times_ns.iter() {
             let mut vals: Vec<f64> = arr.iter().map(|ns| (*ns as f64) / 1e9).collect();
             if let Some(p) = precision {
