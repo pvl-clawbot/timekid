@@ -48,6 +48,12 @@ jobs:
         run: |
           .venv/bin/python -m unittest discover -s tests -p "*_test.py" -v
 
+      - name: Run benchmarks (informational)
+        if: ${{ matrix.python-version == '3.13' }}
+        run: |
+          # No pass/fail thresholds yet; this is to capture baseline numbers in CI logs.
+          PYTHONPATH=src .venv/bin/python benchmarks/bench_overhead.py
+
       - name: Test summary
         if: always()
         run: |
