@@ -31,6 +31,11 @@ Or with pip:
 pip install -e .
 ```
 
+Verify the expected import works:
+```bash
+python -c "import timekid; print('timekid OK')"
+```
+
 ## Quick Start
 
 ### Low-overhead timing (FastTimer)

@@ -2,3 +2,10 @@ __pycache__
 CLAUDE.md
 .claude/
 .venv
+
+# Rust / maturin build artifacts
+/target/
+Cargo.lock
+
+# Local built extension artifacts
+/src/timekid/*.so
