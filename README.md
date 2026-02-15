@@ -33,6 +33,11 @@ pip install -e .
 python -c "import timekid; print('timekid import OK')"
 ```
 
+Verify the expected import works:
+```bash
+python -c "import timekid; print('timekid OK')"
+```
+
 ## Quick Start
 
 ### Low-overhead timing (FastTimer)

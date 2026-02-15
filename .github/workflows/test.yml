@@ -35,14 +35,10 @@ jobs:
         run: |
           uv venv --python "$(which python)"
 
-      - name: Install build tooling
+      - name: Sync environment (frozen)
         run: |
-          # Some uv-created venvs may not include pip by default; use uv to install tooling.
-          uv pip install "maturin>=1.5,<2.0" --python .venv/bin/python
-
-      - name: Install project (editable)
-        run: |
-          uv pip install -e . --python .venv/bin/python
+          # Use the committed uv.lock for reproducible CI environments.
+          uv sync --frozen --group dev --python .venv/bin/python
 
       - name: Run tests
         run: |
