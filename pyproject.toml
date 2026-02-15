@@ -11,6 +11,12 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []
 
+[dependency-groups]
+# Tooling needed for local development + CI (building the native extension).
+dev = [
+  "maturin>=1.5,<2.0",
+]
+
 [tool.maturin]
 # Build a native extension module named timekid._fast
 module-name = "timekid._fast"
