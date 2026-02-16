@@ -260,9 +260,11 @@ Timer(precision: Optional[int] = None, verbose: bool = False, log_func: Callable
 - `get(key: str)` - Get all contexts matching a key
 - `status(key: str)` - Get list of statuses for a key
 - `sorted(reverse: bool = False)` - Get timers sorted by elapsed time
-- `timeit(func, *args, **kwargs)` - Time a single function call
+- `timeit(func, *args, **kwargs)` - Time a single function call (method name; unrelated to Python's `timeit` module)
 - `benchmark(func, num_iter: int, *args, **kwargs)` - Benchmark function with multiple iterations
 - `anonymous(name, verbose, log_func)` - Create anonymous timer context (not stored in registry)
+
+> Note: `Timer.timeit(...)` is an instance method on `Timer`; it does not wrap or proxy the stdlib `timeit` module.
 
 ### TimerContext Class
 
