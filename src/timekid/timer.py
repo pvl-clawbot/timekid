@@ -395,7 +395,7 @@ class Timer:
         return ctx
     
     def benchmark(self, func: Callable[P, R], num_iter: int, warmup: int = 1,
-                  *args: P.args, store: bool = False,
+                  *args: P.args, store: bool = False, key: Optional[str] = None,
                   **kwargs: P.kwargs) -> list[TimerContext]:
         """Benchmark a function across multiple iterations.
 
@@ -405,8 +405,9 @@ class Timer:
             warmup: Number of unmeasured warmup calls before benchmarking.
             *args: Positional arguments passed to ``func``.
             store: If True, store benchmark runs in ``timer.times`` under
-                ``"<func_name> benchmark"``. Defaults to False to preserve
-                prior behavior.
+                ``"<func_name> benchmark"`` by default, or under ``key`` when provided.
+                Defaults to False to preserve prior behavior.
+            key: Optional custom registry key used when ``store=True``.
             **kwargs: Keyword arguments passed to ``func``.
 
         Returns:
@@ -416,14 +417,15 @@ class Timer:
         for _ in range(warmup):
             func(*args, **kwargs)
 
-        str_key: str = f"{func.__name__} benchmark"
+        default_key: str = f"{func.__name__} benchmark"
+        benchmark_key: str = key if key is not None else default_key
         results: list[TimerContext] = []
         for _ in range(num_iter):
             if store:
-                with self[str_key] as ctx:
+                with self[benchmark_key] as ctx:
                     func(*args, **kwargs)
             else:
-                with self.anonymous(name=str_key) as ctx:
+                with self.anonymous(name=benchmark_key) as ctx:
                     func(*args, **kwargs)
             results.append(ctx)
         return results

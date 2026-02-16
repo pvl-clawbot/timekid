@@ -371,6 +371,19 @@ class TestTimer(unittest.TestCase):
         for elapsed in timer.times['sample benchmark']:
             self.assertGreater(elapsed, 0)
 
+    def test_benchmark_can_store_results_with_custom_key(self):
+        timer = Timer(precision=6)
+
+        def sample() -> None:
+            time.sleep(0.001)
+
+        results = timer.benchmark(sample, num_iter=2, store=True, key='bench.custom')
+
+        self.assertEqual(len(results), 2)
+        self.assertIn('bench.custom', timer.times)
+        self.assertNotIn('sample benchmark', timer.times)
+        self.assertEqual(len(timer.times['bench.custom']), 2)
+
 
 class TestTimerFunctionWrapper(unittest.TestCase):
     def test_time_function_basic(self):
