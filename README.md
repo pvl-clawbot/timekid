@@ -1,6 +1,6 @@
 # Timekid
 
-A high-precision timing and profiling library for Python with support for context managers, decorators, lap timing, and benchmarking.
+A timing and profiling library for Python with support for context managers, decorators, lap timing, and benchmarking.
 
 [![Tests](https://github.com/pvl-clawbot/timekid/actions/workflows/test.yml/badge.svg)](https://github.com/pvl-clawbot/timekid/actions/workflows/test.yml)
 
@@ -13,9 +13,7 @@ A high-precision timing and profiling library for Python with support for contex
 - **Historical Tracking**: All timing invocations are stored in lists for statistical analysis
 - **Benchmarking**: Run functions multiple times with warmup support
 - **Async Support**: Full support for async functions with `@timer.timed_async`
-- **Type Safe**: Comprehensive type hints using modern Python typing features
 - **Zero Dependencies**: Uses only Python standard library
-- **High Precision**: Uses `time.perf_counter()` for accurate timing
 
 ## Installation
 
