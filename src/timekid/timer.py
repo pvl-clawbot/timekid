@@ -1,5 +1,6 @@
 import time
 import logging
+import warnings
 from types import TracebackType
 from typing import (Self, Type, Optional, Callable, Generator,
                     Awaitable, ParamSpec, TypeVar)
@@ -59,6 +60,22 @@ class StopWatch(BaseTimer):
         self._end_time: Optional[float] = None
         self._precision = precision
         self._status: Status = Status.PENDING
+
+    def __eq__(self, other: object) -> bool:
+        """Value-ish equality intended mainly for tests.
+
+        Notes:
+            - Compares *recorded* state only (cached elapsed/laps), not wall-clock time.
+            - While RUNNING, elapsed time is dynamic; equality will typically be False
+              unless both objects are identical in recorded state.
+        """
+        if not isinstance(other, StopWatch):
+            return NotImplemented
+        return (
+            self._precision == other._precision
+            and self._status == other._status
+            and self._elapsed_time == other._elapsed_time
+        )
         
     @property
     def elapsed_time(self) -> float:
@@ -140,6 +157,22 @@ class TimerContext(BaseTimer):
         self._entered: bool = False
         self._verbose: bool = verbose
         self._log_func: Callable[[str], None] = log_func if verbose else _noop
+
+    def __eq__(self, other: object) -> bool:
+        """Value-ish equality intended mainly for tests.
+
+        Compares recorded state (name/status/precision + cached elapsed + laps).
+        Does not attempt to compare live running time.
+        """
+        if not isinstance(other, TimerContext):
+            return NotImplemented
+        return (
+            self._name == other._name
+            and self._precision == other._precision
+            and self._status == other._status
+            and self._elapsed_time == other._elapsed_time
+            and self._laps == other._laps
+        )
     
     @property
     def elapsed_time(self) -> float:
@@ -374,8 +407,8 @@ class Timer:
 
         return sorted(result, key=lambda item: item[1].elapsed_time, reverse=reverse)
         
-    def timeit(self, func: Callable[P, R],
-               *args: P.args, **kwargs: P.kwargs) -> TimerContext:
+    def time_call(self, func: Callable[P, R],
+                  *args: P.args, **kwargs: P.kwargs) -> TimerContext:
         """Time a single invocation of a function.
 
         Similar to the timed decorator but for one-off timing.
@@ -393,25 +426,31 @@ class Timer:
         with self[key] as ctx:
             func(*args, **kwargs)
         return ctx
+
+    def timeit(self, func: Callable[P, R],
+               *args: P.args, **kwargs: P.kwargs) -> TimerContext:
+        """Deprecated alias for :meth:`time_call`.
+
+        Note:
+            This method name can be confused with Python's stdlib ``timeit`` module.
+            Prefer ``time_call`` for clarity.
+        """
+        warnings.warn(
+            "Timer.timeit() is deprecated; use Timer.time_call() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.time_call(func, *args, **kwargs)
     
     def benchmark(self, func: Callable[P, R], num_iter: int, warmup: int = 1,
                   *args: P.args, store: bool = False, key: Optional[str] = None,
                   **kwargs: P.kwargs) -> list[TimerContext]:
-        """Benchmark a function across multiple iterations.
+        """Benchmark a function over many iterations.
 
-        Args:
-            func: Function to benchmark.
-            num_iter: Number of measured iterations.
-            warmup: Number of unmeasured warmup calls before benchmarking.
-            *args: Positional arguments passed to ``func``.
-            store: If True, store benchmark runs in ``timer.times`` under
-                ``"<func_name> benchmark"`` by default, or under ``key`` when provided.
-                Defaults to False to preserve prior behavior.
-            key: Optional custom registry key used when ``store=True``.
-            **kwargs: Keyword arguments passed to ``func``.
-
-        Returns:
-            List of TimerContext objects, one per measured iteration.
+        By default, benchmark results are *not* persisted in the registry (they
+        run via :meth:`anonymous`). Set ``store=True`` to store each iteration
+        under the key ``"<func_name> benchmark"`` by default, or provide ``key``
+        to store under a custom registry key.
         """
         # Warmup runs to handle JIT compilation or lazy initialization
         for _ in range(warmup):

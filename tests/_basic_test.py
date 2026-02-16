@@ -1,6 +1,7 @@
 import time
 import unittest
 import asyncio
+import warnings
 
 from timekid.timer import TimerContext, Timer, Status, StopWatch
 
@@ -50,6 +51,14 @@ class TestTimerContext(unittest.TestCase):
 
 
 class TestStopWatch(unittest.TestCase):
+    def test_equality_pending(self):
+        sw1 = StopWatch(precision=2)
+        sw2 = StopWatch(precision=2)
+        self.assertEqual(sw1, sw2)
+
+        sw3 = StopWatch(precision=3)
+        self.assertNotEqual(sw1, sw3)
+
     def test_basic_timing(self):
         """Test basic start/stop functionality."""
         sw = StopWatch(precision=2)
@@ -197,6 +206,18 @@ class TestStopWatch(unittest.TestCase):
 
 
 class TestTimer(unittest.TestCase):
+    def test_timer_context_equality_pending(self):
+        t1 = TimerContext(precision=2)
+        t2 = TimerContext(precision=2)
+        self.assertEqual(t1, t2)
+
+        t3 = TimerContext(precision=3)
+        self.assertNotEqual(t1, t3)
+
+        with t1:
+            time.sleep(0.01)
+        self.assertNotEqual(t1, t2)
+
     def test_registry(self):
         timer = Timer(precision=2)
         with timer['test0']:
@@ -277,6 +298,22 @@ class TestTimer(unittest.TestCase):
         self.assertNotIn('anonymous_test', timer.times)
         self.assertEqual(t.name, 'anonymous_test')
         self.assertEqual(timer.times, {})
+
+    def test_benchmark_store_option(self):
+        timer = Timer(precision=3)
+
+        def f():
+            time.sleep(0.01)
+
+        # default: benchmark does not persist in registry
+        timer.benchmark(f, num_iter=3, warmup=0)
+        self.assertNotIn('f benchmark', timer.times)
+
+        # store=True: each iteration is persisted
+        timer.benchmark(f, num_iter=4, warmup=0, store=True)
+        self.assertIn('f benchmark', timer.times)
+        self.assertEqual(len(timer.times['f benchmark']), 4)
+        self.assertTrue(all(isinstance(x, float) for x in timer.times['f benchmark']))
         
     def test_sorted_default_order(self):
         timer = Timer(precision=2)
@@ -383,6 +420,32 @@ class TestTimer(unittest.TestCase):
         self.assertIn('bench.custom', timer.times)
         self.assertNotIn('sample benchmark', timer.times)
         self.assertEqual(len(timer.times['bench.custom']), 2)
+
+    def test_time_call_times_once(self):
+        timer = Timer(precision=3)
+
+        def sample() -> int:
+            time.sleep(0.01)
+            return 42
+
+        ctx = timer.time_call(sample)
+        self.assertEqual(ctx.status, Status.SUCCEEDED)
+        self.assertIn('sample', timer.times)
+        self.assertEqual(len(timer.times['sample']), 1)
+
+    def test_timeit_warns_and_delegates(self):
+        timer = Timer(precision=3)
+
+        def sample() -> int:
+            return 7
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always', DeprecationWarning)
+            ctx = timer.timeit(sample)
+
+        self.assertEqual(ctx.status, Status.SUCCEEDED)
+        self.assertTrue(any(issubclass(x.category, DeprecationWarning) for x in w))
+        self.assertIn('sample', timer.times)
 
 
 class TestTimerFunctionWrapper(unittest.TestCase):
