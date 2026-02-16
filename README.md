@@ -146,6 +146,15 @@ timer = Timer()
 # Benchmark a function with 1000 iterations (not stored in the registry by default)
 results = timer.benchmark(my_function, num_iter=1000, warmup=1, arg1, arg2)
 
+# Optionally persist benchmark runs in the timer registry
+timer.benchmark(my_function, num_iter=1000, arg1, arg2, store=True)
+print(len(timer.times['my_function benchmark']))
+
+# Optionally provide a custom registry key when storing
+custom_key = 'bench.my_function.hot_path'
+timer.benchmark(my_function, num_iter=1000, arg1, arg2, store=True, key=custom_key)
+print(len(timer.times[custom_key]))
+
 # Analyze results
 times = [r.elapsed_time for r in results]
 avg_time = sum(times) / len(times)
@@ -267,7 +276,7 @@ Timer(precision: Optional[int] = None, verbose: bool = False, log_func: Callable
 - `sorted(reverse: bool = False)` - Get timers sorted by elapsed time
 - `time_call(func, *args, **kwargs)` - Time a single function call (preferred name)
 - `timeit(func, *args, **kwargs)` - Deprecated alias for `time_call`
-- `benchmark(func, num_iter: int, warmup: int = 1, *args, store: bool = False, **kwargs)` - Benchmark function with multiple iterations (optionally stored in registry)
+- `benchmark(func, num_iter: int, warmup: int = 1, *args, store: bool = False, key: Optional[str] = None, **kwargs)` - Benchmark function with multiple iterations (optionally stored in registry; custom key supported)
 - `anonymous(name, verbose, log_func)` - Create anonymous timer context (not stored in registry)
 
 > Note: `Timer.timeit(...)` has been replaced by `Timer.time_call(...)` for clarity and to avoid confusion with the stdlib `timeit` module.

@@ -443,26 +443,28 @@ class Timer:
         return self.time_call(func, *args, **kwargs)
     
     def benchmark(self, func: Callable[P, R], num_iter: int, warmup: int = 1,
-                  *args: P.args, store: bool = False, **kwargs: P.kwargs) -> list[TimerContext]:
+                  *args: P.args, store: bool = False, key: Optional[str] = None,
+                  **kwargs: P.kwargs) -> list[TimerContext]:
         """Benchmark a function over many iterations.
 
         By default, benchmark results are *not* persisted in the registry (they
         run via :meth:`anonymous`). Set ``store=True`` to store each iteration
-        under the key ``"<func_name> benchmark"`` so results appear in
-        :pyattr:`times`/ :pyattr:`contexts`.
+        under the key ``"<func_name> benchmark"`` by default, or provide ``key``
+        to store under a custom registry key.
         """
         # Warmup runs to handle JIT compilation or lazy initialization
         for _ in range(warmup):
             func(*args, **kwargs)
 
-        str_key: str = f"{func.__name__} benchmark"
+        default_key: str = f"{func.__name__} benchmark"
+        benchmark_key: str = key if key is not None else default_key
         results: list[TimerContext] = []
         for _ in range(num_iter):
             if store:
-                with self[str_key] as ctx:
+                with self[benchmark_key] as ctx:
                     func(*args, **kwargs)
             else:
-                with self.anonymous(name=str_key) as ctx:
+                with self.anonymous(name=benchmark_key) as ctx:
                     func(*args, **kwargs)
             results.append(ctx)
         return results
