@@ -1,5 +1,6 @@
 import time
 import logging
+import warnings
 from types import TracebackType
 from typing import (Self, Type, Optional, Callable, Generator,
                     Awaitable, ParamSpec, TypeVar)
@@ -374,8 +375,8 @@ class Timer:
 
         return sorted(result, key=lambda item: item[1].elapsed_time, reverse=reverse)
         
-    def timeit(self, func: Callable[P, R],
-               *args: P.args, **kwargs: P.kwargs) -> TimerContext:
+    def time_call(self, func: Callable[P, R],
+                  *args: P.args, **kwargs: P.kwargs) -> TimerContext:
         """Time a single invocation of a function.
 
         Similar to the timed decorator but for one-off timing.
@@ -393,6 +394,21 @@ class Timer:
         with self[key] as ctx:
             func(*args, **kwargs)
         return ctx
+
+    def timeit(self, func: Callable[P, R],
+               *args: P.args, **kwargs: P.kwargs) -> TimerContext:
+        """Deprecated alias for :meth:`time_call`.
+
+        Note:
+            This method name can be confused with Python's stdlib ``timeit`` module.
+            Prefer ``time_call`` for clarity.
+        """
+        warnings.warn(
+            "Timer.timeit() is deprecated; use Timer.time_call() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.time_call(func, *args, **kwargs)
     
     def benchmark(self, func: Callable[P, R], num_iter: int, warmup: int = 1,
                   *args: P.args, store: bool = False, **kwargs: P.kwargs) -> list[TimerContext]:

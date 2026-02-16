@@ -265,9 +265,12 @@ Timer(precision: Optional[int] = None, verbose: bool = False, log_func: Callable
 - `get(key: str)` - Get all contexts matching a key
 - `status(key: str)` - Get list of statuses for a key
 - `sorted(reverse: bool = False)` - Get timers sorted by elapsed time
-- `timeit(func, *args, **kwargs)` - Time a single function call
+- `time_call(func, *args, **kwargs)` - Time a single function call (preferred name)
+- `timeit(func, *args, **kwargs)` - Deprecated alias for `time_call`
 - `benchmark(func, num_iter: int, warmup: int = 1, *args, store: bool = False, **kwargs)` - Benchmark function with multiple iterations (optionally stored in registry)
 - `anonymous(name, verbose, log_func)` - Create anonymous timer context (not stored in registry)
+
+> Note: `Timer.timeit(...)` has been replaced by `Timer.time_call(...)` for clarity and to avoid confusion with the stdlib `timeit` module.
 
 ### TimerContext Class
 
