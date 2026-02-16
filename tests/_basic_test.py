@@ -346,6 +346,31 @@ class TestTimer(unittest.TestCase):
         self.assertIn("not found in timer registry", str(context.exception))
         self.assertIn("nonexistent_key", str(context.exception))
 
+    def test_benchmark_not_stored_by_default(self):
+        timer = Timer(precision=6)
+
+        def sample() -> None:
+            time.sleep(0.001)
+
+        results = timer.benchmark(sample, num_iter=3)
+
+        self.assertEqual(len(results), 3)
+        self.assertNotIn('sample benchmark', timer.times)
+
+    def test_benchmark_can_store_results(self):
+        timer = Timer(precision=6)
+
+        def sample() -> None:
+            time.sleep(0.001)
+
+        results = timer.benchmark(sample, num_iter=3, store=True)
+
+        self.assertEqual(len(results), 3)
+        self.assertIn('sample benchmark', timer.times)
+        self.assertEqual(len(timer.times['sample benchmark']), 3)
+        for elapsed in timer.times['sample benchmark']:
+            self.assertGreater(elapsed, 0)
+
 
 class TestTimerFunctionWrapper(unittest.TestCase):
     def test_time_function_basic(self):

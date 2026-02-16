@@ -395,8 +395,23 @@ class Timer:
         return ctx
     
     def benchmark(self, func: Callable[P, R], num_iter: int, warmup: int = 1,
-                  *args: P.args, **kwargs: P.kwargs) -> list[TimerContext]:
-        # Benchmark runs anonymously and doesn't persist in registry
+                  *args: P.args, store: bool = False,
+                  **kwargs: P.kwargs) -> list[TimerContext]:
+        """Benchmark a function across multiple iterations.
+
+        Args:
+            func: Function to benchmark.
+            num_iter: Number of measured iterations.
+            warmup: Number of unmeasured warmup calls before benchmarking.
+            *args: Positional arguments passed to ``func``.
+            store: If True, store benchmark runs in ``timer.times`` under
+                ``"<func_name> benchmark"``. Defaults to False to preserve
+                prior behavior.
+            **kwargs: Keyword arguments passed to ``func``.
+
+        Returns:
+            List of TimerContext objects, one per measured iteration.
+        """
         # Warmup runs to handle JIT compilation or lazy initialization
         for _ in range(warmup):
             func(*args, **kwargs)
@@ -404,9 +419,13 @@ class Timer:
         str_key: str = f"{func.__name__} benchmark"
         results: list[TimerContext] = []
         for _ in range(num_iter):
-            with self.anonymous(name = str_key) as ctx:
-                func(*args, **kwargs)
-                results.append(ctx)
+            if store:
+                with self[str_key] as ctx:
+                    func(*args, **kwargs)
+            else:
+                with self.anonymous(name=str_key) as ctx:
+                    func(*args, **kwargs)
+            results.append(ctx)
         return results
         
     def __getitem__(self, key: str) -> TimerContext:

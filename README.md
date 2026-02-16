@@ -146,6 +146,10 @@ timer = Timer()
 # Benchmark a function with 1000 iterations
 results = timer.benchmark(my_function, num_iter=1000, arg1, arg2)
 
+# Optionally persist benchmark runs in the timer registry
+timer.benchmark(my_function, num_iter=1000, arg1, arg2, store=True)
+print(len(timer.times['my_function benchmark']))
+
 # Analyze results
 times = [r.elapsed_time for r in results]
 avg_time = sum(times) / len(times)
@@ -261,7 +265,7 @@ Timer(precision: Optional[int] = None, verbose: bool = False, log_func: Callable
 - `status(key: str)` - Get list of statuses for a key
 - `sorted(reverse: bool = False)` - Get timers sorted by elapsed time
 - `timeit(func, *args, **kwargs)` - Time a single function call (method name; unrelated to Python's `timeit` module)
-- `benchmark(func, num_iter: int, *args, **kwargs)` - Benchmark function with multiple iterations
+- `benchmark(func, num_iter: int, *args, store: bool = False, **kwargs)` - Benchmark function with multiple iterations (set `store=True` to also persist results in `timer.times`)
 - `anonymous(name, verbose, log_func)` - Create anonymous timer context (not stored in registry)
 
 > Note: `Timer.timeit(...)` is an instance method on `Timer`; it does not wrap or proxy the stdlib `timeit` module.
