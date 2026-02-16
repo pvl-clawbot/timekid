@@ -277,6 +277,22 @@ class TestTimer(unittest.TestCase):
         self.assertNotIn('anonymous_test', timer.times)
         self.assertEqual(t.name, 'anonymous_test')
         self.assertEqual(timer.times, {})
+
+    def test_benchmark_store_option(self):
+        timer = Timer(precision=3)
+
+        def f():
+            time.sleep(0.01)
+
+        # default: benchmark does not persist in registry
+        timer.benchmark(f, num_iter=3, warmup=0)
+        self.assertNotIn('f benchmark', timer.times)
+
+        # store=True: each iteration is persisted
+        timer.benchmark(f, num_iter=4, warmup=0, store=True)
+        self.assertIn('f benchmark', timer.times)
+        self.assertEqual(len(timer.times['f benchmark']), 4)
+        self.assertTrue(all(isinstance(x, float) for x in timer.times['f benchmark']))
         
     def test_sorted_default_order(self):
         timer = Timer(precision=2)
