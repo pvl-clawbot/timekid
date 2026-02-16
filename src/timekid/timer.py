@@ -60,6 +60,22 @@ class StopWatch(BaseTimer):
         self._end_time: Optional[float] = None
         self._precision = precision
         self._status: Status = Status.PENDING
+
+    def __eq__(self, other: object) -> bool:
+        """Value-ish equality intended mainly for tests.
+
+        Notes:
+            - Compares *recorded* state only (cached elapsed/laps), not wall-clock time.
+            - While RUNNING, elapsed time is dynamic; equality will typically be False
+              unless both objects are identical in recorded state.
+        """
+        if not isinstance(other, StopWatch):
+            return NotImplemented
+        return (
+            self._precision == other._precision
+            and self._status == other._status
+            and self._elapsed_time == other._elapsed_time
+        )
         
     @property
     def elapsed_time(self) -> float:
@@ -141,6 +157,22 @@ class TimerContext(BaseTimer):
         self._entered: bool = False
         self._verbose: bool = verbose
         self._log_func: Callable[[str], None] = log_func if verbose else _noop
+
+    def __eq__(self, other: object) -> bool:
+        """Value-ish equality intended mainly for tests.
+
+        Compares recorded state (name/status/precision + cached elapsed + laps).
+        Does not attempt to compare live running time.
+        """
+        if not isinstance(other, TimerContext):
+            return NotImplemented
+        return (
+            self._name == other._name
+            and self._precision == other._precision
+            and self._status == other._status
+            and self._elapsed_time == other._elapsed_time
+            and self._laps == other._laps
+        )
     
     @property
     def elapsed_time(self) -> float:
