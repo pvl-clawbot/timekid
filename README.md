@@ -143,13 +143,18 @@ from timekid.timer import Timer
 
 timer = Timer()
 
-# Benchmark a function with 1000 iterations
-results = timer.benchmark(my_function, num_iter=1000, arg1, arg2)
+# Benchmark a function with 1000 iterations (not stored in the registry by default)
+results = timer.benchmark(my_function, num_iter=1000, warmup=1, arg1, arg2)
 
 # Analyze results
 times = [r.elapsed_time for r in results]
 avg_time = sum(times) / len(times)
 print(f"Average: {avg_time:.6f}s")
+
+# If you want benchmark iterations to appear in timer.times / timer.contexts:
+# (stored under "<func_name> benchmark")
+_ = timer.benchmark(my_function, num_iter=1000, warmup=1, store=True, arg1, arg2)
+print(len(timer.times["my_function benchmark"]))
 ```
 
 ### Simple StopWatch
@@ -260,11 +265,12 @@ Timer(precision: Optional[int] = None, verbose: bool = False, log_func: Callable
 - `get(key: str)` - Get all contexts matching a key
 - `status(key: str)` - Get list of statuses for a key
 - `sorted(reverse: bool = False)` - Get timers sorted by elapsed time
-- `timeit(func, *args, **kwargs)` - Time a single function call (method name; unrelated to Python's `timeit` module)
-- `benchmark(func, num_iter: int, *args, **kwargs)` - Benchmark function with multiple iterations
+- `time_call(func, *args, **kwargs)` - Time a single function call (preferred name)
+- `timeit(func, *args, **kwargs)` - Deprecated alias for `time_call`
+- `benchmark(func, num_iter: int, warmup: int = 1, *args, store: bool = False, **kwargs)` - Benchmark function with multiple iterations (optionally stored in registry)
 - `anonymous(name, verbose, log_func)` - Create anonymous timer context (not stored in registry)
 
-> Note: `Timer.timeit(...)` is an instance method on `Timer`; it does not wrap or proxy the stdlib `timeit` module.
+> Note: `Timer.timeit(...)` has been replaced by `Timer.time_call(...)` for clarity and to avoid confusion with the stdlib `timeit` module.
 
 ### TimerContext Class
 
